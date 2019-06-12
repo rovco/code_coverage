@@ -91,16 +91,6 @@ mark_as_advanced(
     CMAKE_EXE_LINKER_FLAGS_COVERAGE
     CMAKE_SHARED_LINKER_FLAGS_COVERAGE )
 
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(WARNING "Code coverage results with an optimised (non-Debug) build may be misleading")
-endif() # NOT CMAKE_BUILD_TYPE STREQUAL "Debug"
-
-if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    link_libraries(gcov)
-else()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-endif()
-
 # Defines a target for running and collection code coverage information
 # Builds dependencies, runs all the ROS tests and outputs reports.
 # NOTE! The executable should always have a ZERO as exit code otherwise
@@ -174,4 +164,14 @@ function(APPEND_COVERAGE_COMPILER_FLAGS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILER_FLAGS}" PARENT_SCOPE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILER_FLAGS}" PARENT_SCOPE)
     message(STATUS "Appending code coverage compiler flags: ${COVERAGE_COMPILER_FLAGS}")
+
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        message(WARNING "Code coverage results with an optimised (non-Debug) build may be misleading")
+    endif() # NOT CMAKE_BUILD_TYPE STREQUAL "Debug"
+
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        link_libraries(gcov)
+    else()
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+    endif()
 endfunction() # APPEND_COVERAGE_COMPILER_FLAGS
