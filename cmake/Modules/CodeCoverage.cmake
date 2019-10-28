@@ -129,9 +129,12 @@ function(ADD_CODE_COVERAGE)
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         COMMENT "Resetting code coverage counters to zero."
     )
-    add_dependencies(${Coverage_NAME}_cleanup
-        ${Coverage_DEPENDENCIES}
-    )
+
+    if (Coverage_DEPENDENCIES)
+      add_dependencies(${Coverage_NAME}_cleanup
+          ${Coverage_DEPENDENCIES}
+      )
+    endif()
 
     add_custom_target(${Coverage_NAME}
 
