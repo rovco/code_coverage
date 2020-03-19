@@ -98,13 +98,14 @@ mark_as_advanced(
 #
 # ADD_CODE_COVERAGE(
 #     NAME testrunner_coverage                    # New target name
-#     DEPENDENCIES testrunner                     # Dependencies to build first
+#     EXCLUDES excludes* #Wildcard/regex(?) form of excluding from coverage results, e.g. for tests
+#     INCLUDES includes
 # )
 function(ADD_CODE_COVERAGE)
 
     set(options NONE)
     set(oneValueArgs NAME)
-    set(multiValueArgs DEPENDENCIES)
+    set(multiValueArgs EXCLUDES INCLUDES)
     cmake_parse_arguments(Coverage "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if(NOT LCOV_PATH)
@@ -115,6 +116,14 @@ function(ADD_CODE_COVERAGE)
         message(FATAL_ERROR "genhtml not found! Aborting...")
     endif() # NOT GENHTML_PATH
 
+    if (COVERAGE_EXCLUDES)
+      message(WARNING "Use EXCLUDES parameters instead of global dep. COVERAGE_EXCLUDES")
+    endif()
+
+    if (COVERAGE_INCLUDES)
+      message(WARNING "Use INCLUDES parameters instead of global dep. COVERAGE_INCLUDES")
+    endif()
+
     # Setup target
     add_custom_target(${Coverage_NAME}_cleanup
         # Cleanup lcov
@@ -122,7 +131,6 @@ function(ADD_CODE_COVERAGE)
         # Create baseline to make sure untouched files show up in the report
         COMMAND ${LCOV_PATH} -c -i -d . -o ${Coverage_NAME}.base
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-        DEPENDS ${Coverage_DEPENDENCIES}
         COMMENT "Resetting code coverage counters to zero."
     )
 
@@ -133,10 +141,10 @@ function(ADD_CODE_COVERAGE)
         #COMMAND ${LCOV_PATH} --directory . -b ${PROJECT_SOURCE_DIR} --no-external --capture --output-file ${Coverage_NAME}.info
 
         # add baseline counters
-        COMMAND ${LCOV_PATH} --remove ${Coverage_NAME}.info ${COVERAGE_EXCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.removed
+        COMMAND ${LCOV_PATH} --remove ${Coverage_NAME}.info ${COVERAGE_EXCLUDES} ${Coverage_EXCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.removed
         COMMAND ${LCOV_PATH} -a ${Coverage_NAME}.base -a ${Coverage_NAME}.info.removed --output-file ${Coverage_NAME}.total
-        COMMAND ${LCOV_PATH} --remove ${Coverage_NAME}.total ${COVERAGE_EXCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.removed
-        COMMAND ${LCOV_PATH} --extract ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.removed "'*/${PROJECT_NAME}/*'" ${COVERAGE_INCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
+        COMMAND ${LCOV_PATH} --remove ${Coverage_NAME}.total ${COVERAGE_EXCLUDES} ${Coverage_EXCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.removed
+        COMMAND ${LCOV_PATH} --extract ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.removed "'*/${PROJECT_NAME}/*'" ${COVERAGE_INCLUDES} ${Coverage_INCLUDES} --output-file ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
         COMMAND ${GENHTML_PATH} -o ${Coverage_NAME} ${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
         COMMAND ${CMAKE_COMMAND} -E remove ${Coverage_NAME}.base ${Coverage_NAME}.total #${PROJECT_BINARY_DIR}/${Coverage_NAME}.info.cleaned
 
@@ -161,8 +169,8 @@ function(ADD_CODE_COVERAGE)
 endfunction() # SETUP_TARGET_FOR_COVERAGE
 
 function(APPEND_COVERAGE_COMPILER_FLAGS)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILER_FLAGS}" PARENT_SCOPE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILER_FLAGS}" PARENT_SCOPE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILER_FLAGS}" CACHE INTERNAL "" FORCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILER_FLAGS}" CACHE INTERNAL "" FORCE)
     message(STATUS "Appending code coverage compiler flags: ${COVERAGE_COMPILER_FLAGS}")
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
